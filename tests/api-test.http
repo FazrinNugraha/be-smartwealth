@@ -1,0 +1,85 @@
+### SmartWealth API Testing
+### Use REST Client extension to run these requests
+
+@baseUrl = http://localhost:8000
+@apiUrl = {{baseUrl}}/api/v1
+
+### ═══════════════════════════════════════════════════════
+### Health Checks
+### ═══════════════════════════════════════════════════════
+
+### Root endpoint
+GET {{baseUrl}}/
+
+### Health check
+GET {{apiUrl}}/health
+
+### Database health check
+GET {{apiUrl}}/health/db
+
+
+### ═══════════════════════════════════════════════════════
+### Authentication (Coming in Step 6)
+### ═══════════════════════════════════════════════════════
+
+### Register new user
+# POST {{apiUrl}}/auth/register
+# Content-Type: application/json
+# 
+# {
+#   "email": "test@example.com",
+#   "password": "Test1234!",
+#   "full_name": "Test User"
+# }
+
+### Login
+# POST {{apiUrl}}/auth/login
+# Content-Type: application/json
+# 
+# {
+#   "email": "test@example.com",
+#   "password": "Test1234!"
+# }
+
+### Refresh token
+# POST {{apiUrl}}/auth/refresh
+# Content-Type: application/json
+# 
+# {
+#   "refresh_token": "your-refresh-token-here"
+# }
+
+
+### ═══════════════════════════════════════════════════════
+### Assets (Coming in Step 7)
+### ═══════════════════════════════════════════════════════
+
+### Get all user assets
+# GET {{apiUrl}}/assets
+# Authorization: Bearer {{accessToken}}
+
+### Create new asset
+# POST {{apiUrl}}/assets
+# Content-Type: application/json
+# Authorization: Bearer {{accessToken}}
+# 
+# {
+#   "symbol": "BBCA.JK",
+#   "asset_name": "Bank Central Asia",
+#   "asset_type": "stock_id",
+#   "quantity": 100,
+#   "avg_buy_price": 8500
+# }
+
+
+### ═══════════════════════════════════════════════════════
+### Dashboard (Coming in Step 10)
+### ═══════════════════════════════════════════════════════
+
+### Get net worth
+# GET {{apiUrl}}/dashboard/net-worth
+# Authorization: Bearer {{accessToken}}
+
+### Get allocation
+# GET {{apiUrl}}/dashboard/allocation
+# Authorization: Bearer {{accessToken}}
