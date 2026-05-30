@@ -160,26 +160,26 @@ SmartWealth follows a clean layered architecture where every request passes thro
 └────────────────────────────┬────────────────────────────────┘
                              │  HTTPS REST API
 ┌────────────────────────────▼────────────────────────────────┐
-│                   FastAPI (Backend API)                      │
+│                   FastAPI (Backend API)                     │
 │                                                             │
-│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐  │
-│  │  Router  │──▶│ Service  │──▶│  Model   │──▶│  DB     │  │
-│  │  Layer   │   │  Layer   │   │  Layer   │   │ Session │  │
-│  └──────────┘   └──────────┘   └──────────┘   └─────────┘  │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐   │
+│  │  Router  │──▶│ Service  │──▶│  Model   │──▶│  DB   │   │
+│  │  Layer   │   │  Layer   │   │  Layer   │   │ Session │   │
+│  └──────────┘   └──────────┘   └──────────┘   └─────────┘   │
 │                      │                                      │
 │         ┌────────────┼────────────┐                         │
 │         ▼            ▼            ▼                         │
 │   Gemini AI     Yahoo Finance  CoinGecko                    │
 │   (insights)    (stock prices) (crypto prices)              │
 │                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │           APScheduler (Background Jobs)              │   │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │           APScheduler (Background Jobs)             │    │
 │  │   Price Updater (every 5 min) │ Wealth Snapshot (daily)  │
-│  └─────────────────────────────────────────────────────┘   │
+│  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────┬───────────────────────────────┘
                               │
 ┌─────────────────────────────▼───────────────────────────────┐
-│              PostgreSQL on Neon.tech (serverless)            │
+│              PostgreSQL on Neon.tech (serverless)           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
