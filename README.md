@@ -69,24 +69,41 @@ SmartWealth solves two core problems: **a unified view of all assets** and **act
 
 ## Tech Stack
 
-| Category | Technology |
-|---|---|
-| Framework | FastAPI |
-| Server | Uvicorn (ASGI) |
-| Database | PostgreSQL (Neon.tech, serverless) |
-| ORM | SQLAlchemy (async) |
-| Database Driver | asyncpg |
-| Schema Migrations | Alembic |
-| Validation & Config | Pydantic v2, pydantic-settings |
-| Authentication | JWT (python-jose), bcrypt (passlib) |
-| AI Model | Google Gemini 2.5 Flash (google-generativeai) |
-| Stock Data | yfinance, curl_cffi (anti-bot bypass) |
-| Crypto Data | CoinGecko API (via httpx) |
-| ML Model | LightGBM, scikit-learn |
-| Technical Analysis | ta (Technical Analysis library) |
-| Data Processing | pandas, numpy |
-| Background Jobs | APScheduler (AsyncIOScheduler) |
-| Testing | pytest |
+**Core**
+
+![Python](https://img.shields.io/badge/Python_3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Uvicorn](https://img.shields.io/badge/Uvicorn-499848?style=for-the-badge&logo=gunicorn&logoColor=white)
+
+**Database & ORM**
+
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)
+![Alembic](https://img.shields.io/badge/Alembic-6BA81E?style=for-the-badge&logo=alembic&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=for-the-badge&logo=pydantic&logoColor=white)
+
+**Authentication**
+
+![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
+![Google OAuth](https://img.shields.io/badge/Google_OAuth_2.0-4285F4?style=for-the-badge&logo=google&logoColor=white)
+
+**AI & Machine Learning**
+
+![Google Gemini](https://img.shields.io/badge/Google_Gemini_2.5_Flash-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
+![LightGBM](https://img.shields.io/badge/LightGBM-02569B?style=for-the-badge&logo=lightgbm&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white)
+
+**Data & Market APIs**
+
+![pandas](https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)
+![Yahoo Finance](https://img.shields.io/badge/Yahoo_Finance-6001D2?style=for-the-badge&logo=yahoo&logoColor=white)
+![CoinGecko](https://img.shields.io/badge/CoinGecko_API-8DC63F?style=for-the-badge&logo=coingecko&logoColor=white)
+
+**Background Jobs & Testing**
+
+![APScheduler](https://img.shields.io/badge/APScheduler-4A4A4A?style=for-the-badge&logo=clockify&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
 
 ---
 
@@ -131,69 +148,108 @@ be/
 
 ---
 
-## Local Setup
+## How It Works
 
-### Prerequisites
-- Python 3.12+
-- A PostgreSQL database (Neon.tech is recommended for easy setup)
-- A virtual environment
+### System Architecture
 
-### Installation
+SmartWealth follows a clean layered architecture where every request passes through a defined set of responsibilities before touching the database.
 
-```bash
-# Create a virtual environment
-python -m venv venv
-
-# Activate it
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# Install all dependencies
-pip install -r requirements.txt
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Frontend (React)                       │
+└────────────────────────────┬────────────────────────────────┘
+                             │  HTTPS REST API
+┌────────────────────────────▼────────────────────────────────┐
+│                   FastAPI (Backend API)                      │
+│                                                             │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐  │
+│  │  Router  │──▶│ Service  │──▶│  Model   │──▶│  DB     │  │
+│  │  Layer   │   │  Layer   │   │  Layer   │   │ Session │  │
+│  └──────────┘   └──────────┘   └──────────┘   └─────────┘  │
+│                      │                                      │
+│         ┌────────────┼────────────┐                         │
+│         ▼            ▼            ▼                         │
+│   Gemini AI     Yahoo Finance  CoinGecko                    │
+│   (insights)    (stock prices) (crypto prices)              │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │           APScheduler (Background Jobs)              │   │
+│  │   Price Updater (every 5 min) │ Wealth Snapshot (daily)  │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+┌─────────────────────────────▼───────────────────────────────┐
+│              PostgreSQL on Neon.tech (serverless)            │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Environment Variables
+### Request Data Flow
 
-Create a `.env` file in the `be/` root directory:
+Here is what happens step by step when the frontend makes an API call:
 
-```env
-# Database (PostgreSQL — asyncpg format)
-DATABASE_URL=postgresql://user:password@host/dbname
+1. **Router** — FastAPI receives the HTTP request, validates the JWT token via a dependency, and routes it to the correct handler function
+2. **Service Layer** — the handler delegates all business logic to a service (e.g. `dashboard_service`, `ai_service`). The router itself contains no logic
+3. **Model / ORM** — the service queries or writes to the database using SQLAlchemy async sessions and ORM models
+4. **External APIs** — if the service needs live data (prices, AI analysis), it calls the appropriate external API (Yahoo Finance, CoinGecko, or Gemini)
+5. **Response** — the result is serialized through a Pydantic schema and returned as JSON
 
-# JWT
-JWT_SECRET_KEY=your-very-secret-key-here
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=15
-REFRESH_TOKEN_EXPIRE_DAYS=7
+### Key Data Flows
 
-# Google OAuth 2.0
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/google/callback
-
-# Gemini AI
-GEMINI_API_KEY=your-gemini-api-key
-
-# App Settings
-APP_ENV=development
-FRONTEND_URL=http://localhost:5173
+**Portfolio Dashboard**
+```
+GET /api/v1/dashboard/summary
+  → dashboard_service.get_summary()
+  → queries user_assets + asset_prices tables
+  → calculator.py computes P&L and ROI per asset
+  → returns aggregated totals
 ```
 
-### Run Database Migrations
-
-```bash
-alembic upgrade head
+**AI Insights**
+```
+GET /api/v1/insights/ai
+  → ai_service.get_gemini_insights()
+  → checks insight_cache table (TTL: 6 hours)
+  → if expired: builds portfolio context → calls Gemini 2.5 Flash API
+  → parses JSON response → saves to cache → returns to client
+  → if Gemini unavailable: falls back to rule-based insight_engine
 ```
 
-### Start the Server
-
-```bash
-uvicorn app.main:app --reload
+**Stock Price Prediction**
+```
+GET /api/v1/predictions/{ticker}
+  → prediction_service.predict_stock()
+  → checks in-memory cache (TTL: 1 hour)
+  → if miss: fetches 3 years of OHLCV data from Yahoo Finance
+  → builds 40+ technical indicator features
+  → trains LightGBM quantile models on-demand
+  → returns lower/median/upper price for 1–7 business days
 ```
 
-The server runs at `http://localhost:8000`.
+**Background Price Updates**
+```
+APScheduler (every 5 minutes)
+  → price_updater_job()
+  → fetches all distinct asset symbols from active user portfolios
+  → calls price_service for each symbol (Yahoo Finance or CoinGecko)
+  → upserts latest prices into asset_prices table
+```
+
+### Authentication Flow
+
+```
+Email/Password Login:
+  POST /auth/login → verify password hash → issue JWT access token (15 min)
+                   → issue refresh token (7 days, stored in DB)
+
+Google OAuth:
+  GET /auth/google → redirect to Google consent screen
+  GET /auth/google/callback → exchange code for Google profile
+                            → upsert user in DB → issue JWT + refresh token
+
+Token Refresh:
+  POST /auth/refresh → validate refresh token in DB
+                     → rotate: revoke old token → issue new pair
+```
 
 ---
 
