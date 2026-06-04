@@ -383,7 +383,3 @@ Kalau MVP sudah running dan kamu mau iterate:
 8. **Macro features**: tambah feature dari indeks (IHSG, JCI), forex (USD/IDR), atau sektor
 9. **Sentiment analysis**: scrape news / social media untuk feature sentiment
 10. **Alert system**: kasih webhook/email kalau prediksi extreme (misal predicted change > 10%)
-
-tessss
-
-tess lagii
