@@ -157,6 +157,24 @@ async def get_gemini_insights(
         return None
 
 
+async def get_cached_gemini_insights(
+    db: AsyncSession,
+    user: User,
+) -> Optional[Dict]:
+    """
+    Get cached Gemini insights without generating a fresh response.
+    """
+    cached = await get_cached_insights(db, user.id)
+    if not cached:
+        return None
+
+    return {
+        **cached["insight_data"],
+        "source": "cache",
+        "cached_at": str(cached["created_at"]),
+    }
+
+
 async def build_portfolio_context(
     db: AsyncSession,
     user: User,

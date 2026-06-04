@@ -3,7 +3,7 @@ Insights Router - API endpoints untuk portfolio insights
 
 Endpoints:
 - GET /insights - Get rule-based portfolio insights
-- GET /insights/ai - Get AI-powered insights (Gemini)
+- GET /insights/ai - Get cached AI-powered insights
 - POST /insights/ai/refresh - Force refresh AI insights
 
 Semua endpoints require authentication.
@@ -65,7 +65,7 @@ async def get_ai_insights(
     current_user: User = Depends(get_current_user),
 ) -> dict:
     """
-    Get AI-powered portfolio insights (Gemini)
+    Get cached AI-powered portfolio insights
 
     Returns:
         {
@@ -78,25 +78,23 @@ async def get_ai_insights(
             },
             "action_plan": [...],
             "risk_assessment": "...",
-            "source": "cache" | "fresh" | "unavailable"
+            "source": "cache" | "empty"
         }
 
     Note:
-        - Uses Gemini 2.0 Flash for AI analysis
-        - Cached for 6 hours (fast subsequent calls)
-        - If GEMINI_API_KEY not configured, returns unavailable
-        - Response time: 2-5 seconds (first call), <100ms (cached)
+        - Does not call Gemini or generate a fresh analysis
+        - Use POST /ai/refresh when the user explicitly clicks Generate
+        - Cached data expires after 6 hours
 
     Examples:
         GET /api/v1/insights/ai
     """
-    ai_insights = await ai_service.get_gemini_insights(db, current_user)
+    ai_insights = await ai_service.get_cached_gemini_insights(db, current_user)
 
     if ai_insights is None:
-        # Fallback ke rule-based
         return {
-            "summary": "AI insights tidak tersedia saat ini. Gunakan rule-based insights.",
-            "source": "unavailable",
+            "summary": "Belum ada AI insights. Klik Generate untuk membuat analisis Gemini.",
+            "source": "empty",
         }
 
     return ai_insights
