@@ -385,3 +385,5 @@ Kalau MVP sudah running dan kamu mau iterate:
 10. **Alert system**: kasih webhook/email kalau prediksi extreme (misal predicted change > 10%)
 
 tessss
+
+tess lagii
