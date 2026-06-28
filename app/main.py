@@ -190,8 +190,13 @@ async def root():
     }
 
 
-@app.get("/api/v1/health", tags=["Health"])
+@app.api_route("/api/v1/health", methods=["GET", "HEAD"], tags=["Health"])
 async def health_check():
+    """
+    Health check endpoint.
+    Mendukung GET dan HEAD agar kompatibel dengan Uptime Robot free tier
+    (free tier hanya bisa kirim HEAD request).
+    """
     return {"status": "ok", "environment": settings.APP_ENV}
 
 
