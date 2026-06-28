@@ -26,7 +26,6 @@ from decimal import Decimal
 from typing import Literal
 
 import httpx
-import yfinance as yf
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -74,81 +73,77 @@ def _period_to_start_date(period: str) -> str:
 
 async def fetch_stock_price(symbol: str) -> Decimal | None:
     """
-    Fetch harga saham dari yfinance
-
-    Args:
-        symbol: Ticker symbol (BBCA.JK, AAPL, GC=F, IDR=X, dll)
-
-    Returns:
-        Harga terkini atau None jika error
-
-    Note:
-        yfinance adalah library synchronous, jadi kita run di thread pool
-        agar tidak blocking event loop
+    Fetch harga saham secara Async dari Yahoo Finance API v8
+    tanpa menggunakan yfinance (menghindari thread pool blocking).
     """
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=1d"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+    }
+    
     try:
-        loop = asyncio.get_event_loop()
-        ticker = await loop.run_in_executor(None, yf.Ticker, symbol)
-        info = await loop.run_in_executor(None, lambda: ticker.fast_info)
-
-        # fast_info adalah object dengan attribute, bukan dict
-        price = getattr(info, "last_price", None)
-
-        if price and price > 0:
-            return Decimal(str(price))
-
-        return None
-
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            
+            data = response.json()
+            meta = data["chart"]["result"][0]["meta"]
+            price = meta.get("regularMarketPrice")
+            
+            if price and price > 0:
+                return Decimal(str(price))
+                
+            return None
+            
     except Exception as e:
-        print(f"Error fetching stock price for {symbol}: {e}")
+        print(f"Error fetching stock price for {symbol} via Yahoo API: {e}")
         return None
 
 
 async def fetch_stock_price_history(symbol: str, period: str) -> list[dict]:
     """
-    Fetch daily historical prices from yfinance.
-
-    Uses an explicit start date so that all assets (US stocks, Indonesian stocks,
-    commodities) return data from the exact same calendar day — fixing the issue
-    where NVDA would start 4 days earlier than IDX stocks due to timezone/period
-    string differences.
-
-    Returns:
-        List of {"date": "YYYY-MM-DD", "price": Decimal(...)} sorted ascending.
+    Fetch history harga saham secara Async dari Yahoo Finance API v8.
     """
+    from datetime import datetime, timedelta, timezone
+    
     try:
-        loop = asyncio.get_event_loop()
-        start_date = _period_to_start_date(period)
+        days = _period_to_days(period)
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(days=days)
+        
+        period1 = int(start_date.timestamp())
+        period2 = int(end_date.timestamp())
+        
+        url = f"https://query2.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&period1={period1}&period2={period2}"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+        }
 
-        def load_history():
-            ticker = yf.Ticker(symbol)
-            return ticker.history(
-                start=start_date,
-                interval="1d",
-                auto_adjust=True,
-            )
-
-        history = await loop.run_in_executor(None, load_history)
-        if history is None or getattr(history, "empty", True):
-            return []
-
-        points = []
-        for timestamp, row in history.iterrows():
-            close = row.get("Close")
-            if close is None or close != close or close <= 0:
-                continue
-
-            points.append(
-                {
-                    "date": timestamp.date().isoformat(),
-                    "price": Decimal(str(close)),
-                }
-            )
-
-        return points
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            
+            data = response.json()
+            result = data["chart"]["result"][0]
+            
+            timestamps = result.get("timestamp", [])
+            indicators = result.get("indicators", {}).get("quote", [{}])[0]
+            closes = indicators.get("close", [])
+            
+            points = []
+            for ts, close in zip(timestamps, closes):
+                if close is None or close <= 0:
+                    continue
+                    
+                points.append({
+                    "date": datetime.fromtimestamp(ts, timezone.utc).date().isoformat(),
+                    "price": Decimal(str(close))
+                })
+                
+            return points
 
     except Exception as e:
-        print(f"Error fetching stock history for {symbol}: {e}")
+        print(f"Error fetching stock history for {symbol} via Yahoo API: {e}")
         return []
 
 
@@ -320,27 +315,29 @@ async def update_price_cache(
 
 async def fetch_usd_idr_rate() -> Decimal | None:
     """
-    Fetch kurs USD/IDR dari yfinance
-
-    Symbol: IDR=X (USD to IDR exchange rate)
-
-    Returns:
-        Kurs USD/IDR terkini (contoh: 16000.0) atau None jika error
+    Fetch kurs USD/IDR dari Yahoo Finance secara Async.
     """
+    url = "https://query2.finance.yahoo.com/v8/finance/chart/IDR=X?interval=1d&range=1d"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+    }
+    
     try:
-        loop = asyncio.get_event_loop()
-        ticker = await loop.run_in_executor(None, yf.Ticker, "IDR=X")
-        info = await loop.run_in_executor(None, lambda: ticker.fast_info)
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            
+            data = response.json()
+            meta = data["chart"]["result"][0]["meta"]
+            rate = meta.get("regularMarketPrice")
 
-        rate = getattr(info, "last_price", None)
+            if rate and rate > 0:
+                return Decimal(str(rate))
 
-        if rate and rate > 0:
-            return Decimal(str(rate))
-
-        return None
+            return None
 
     except Exception as e:
-        print(f"Error fetching USD/IDR rate: {e}")
+        print(f"Error fetching USD/IDR rate via Yahoo API: {e}")
         return None
 
 
