@@ -84,6 +84,7 @@ async def create_asset(
 
     # Invalidate dashboard cache so next summary fetch is fresh
     dashboard_service.invalidate_summary_cache(str(user_id))
+    dashboard_service.invalidate_analytics_cache(str(user_id))
 
     return asset
 
@@ -227,6 +228,7 @@ async def update_asset(
     await db.refresh(asset)
 
     dashboard_service.invalidate_summary_cache(str(user_id))
+    dashboard_service.invalidate_analytics_cache(str(user_id))
 
     return asset
 
@@ -269,5 +271,6 @@ async def delete_asset(
     await db.commit()
 
     dashboard_service.invalidate_summary_cache(str(user_id))
+    dashboard_service.invalidate_analytics_cache(str(user_id))
 
     return {"message": "Asset deleted successfully"}

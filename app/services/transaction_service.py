@@ -156,6 +156,7 @@ async def create_transaction(
 
     # Invalidate dashboard cache (asset quantity/avg changed)
     dashboard_service.invalidate_summary_cache(str(user_id))
+    dashboard_service.invalidate_analytics_cache(str(user_id))
 
     return transaction
 
@@ -359,5 +360,6 @@ async def delete_transaction(
     await db.commit()
 
     dashboard_service.invalidate_summary_cache(str(user_id))
+    dashboard_service.invalidate_analytics_cache(str(user_id))
 
     return {"message": "Transaction deleted successfully"}

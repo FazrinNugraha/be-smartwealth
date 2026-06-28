@@ -138,6 +138,7 @@ async def login(
 
     # Invalidate dashboard cache for fresh load
     dashboard_service.invalidate_summary_cache(str(user.id))
+    dashboard_service.invalidate_analytics_cache(str(user.id))
 
     return TokenResponse(
         access_token=access_token,
@@ -186,6 +187,7 @@ async def login_json(
 
     # Invalidate dashboard cache for fresh load
     dashboard_service.invalidate_summary_cache(str(user.id))
+    dashboard_service.invalidate_analytics_cache(str(user.id))
 
     return TokenResponse(
         access_token=access_token,
@@ -326,6 +328,7 @@ async def logout(
 
     # Invalidate dashboard cache on logout
     dashboard_service.invalidate_summary_cache(str(current_user.id))
+    dashboard_service.invalidate_analytics_cache(str(current_user.id))
 
     return {"message": "Logged out successfully"}
 
@@ -359,6 +362,7 @@ async def google_auth(
 
         # Invalidate dashboard cache for fresh load
         dashboard_service.invalidate_summary_cache(str(user.id))
+        dashboard_service.invalidate_analytics_cache(str(user.id))
 
         return TokenResponse(
             access_token=access_token,
